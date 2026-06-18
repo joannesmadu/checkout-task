@@ -28,6 +28,7 @@ jobs:
   terraform:
     name: Format, Validate & Plan (dev)
     runs-on: ubuntu-latest
+    environment: checkout
 
     steps:
       - name: Checkout
@@ -41,9 +42,6 @@ jobs:
       - name: Terraform Format Check (modules & environments)
         run: terraform fmt -check -recursive
 
-      # OIDC federated credential auth - no long-lived client secret stored
-      # in GitHub. The Azure AD App Registration's federated credential is
-      # scoped to this repo + branch; see README "CI/CD authentication".
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
@@ -68,9 +66,6 @@ jobs:
         working-directory: environments/dev
         run: terraform plan -no-color -input=false
 
-  # Prod plan is intentionally a separate, manually-triggered job rather
-  # than running automatically on every push - applies to prod should be a
-  # deliberate, reviewed action, not something that happens on merge.
   terraform-plan-prod:
     name: Validate & Plan (prod) [manual]
     if: github.event_name == 'workflow_dispatch'

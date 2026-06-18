@@ -31,9 +31,3 @@ resource "azurerm_monitor_action_group" "this" {
 
   tags = var.tags
 }
-
-# Note: the metric alert rule itself (e.g. Function App Http5xx) is defined
-# in the environment root module rather than here, since it needs to scope
-# to the Function App resource and creating that dependency inside this
-# module would form a cycle (function_app also depends on this module's
-# Application Insights connection string).

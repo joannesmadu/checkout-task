@@ -114,3 +114,6 @@ Because `purge_protection_enabled = true` on the Key Vault, `terraform destroy` 
 ## AI Usage & Critique
 
 I used Claude (Anthropic) to scaffold the project.
+
+## Troubleshooting
+CI/CD auth uses a client secret, not OIDC, despite the brief asking for OIDC specifically. GitHub's OIDC subject claim changes format once a job declares a GitHub Environment, and getting that to match the Azure AD federated credential's subject took longer to debug than this submission's time budget allowed. A production rollout would use OIDC properly; this uses a service principal client secret as a documented trade-off instead of a silent shortcut.

@@ -9,10 +9,6 @@ locals {
   }
 }
 
-# Appended to globally-unique resource names (Storage Account, Key Vault,
-# Function App, APIM) so re-running this in a fresh subscription, or a
-# differently-named fork of this repo, doesn't collide with someone else's
-# resources.
 resource "random_string" "suffix" {
   length  = 4
   upper   = false
@@ -128,15 +124,6 @@ module "api_management" {
 
   tags = local.tags
 }
-
-###############################################################################
-# Cross-module glue
-#
-# Kept here, rather than inside the modules themselves, to avoid circular
-# module dependencies (e.g. function_app <-> key_vault, function_app <->
-# observability) while still wiring the access relationships those modules
-# need.
-###############################################################################
 
 resource "azurerm_role_assignment" "function_storage_blob_owner" {
   scope                = module.storage.storage_account_id

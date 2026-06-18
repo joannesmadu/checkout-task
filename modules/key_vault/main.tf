@@ -41,9 +41,6 @@ resource "azurerm_private_endpoint" "this" {
   }
 }
 
-# The principal running `terraform apply` needs write access to create the
-# secrets below. In CI this would be the OIDC service principal; granted via
-# RBAC rather than a legacy access policy.
 resource "azurerm_role_assignment" "deployer_secrets_officer" {
   scope                = azurerm_key_vault.this.id
   role_definition_name = "Key Vault Secrets Officer"

@@ -1,8 +1,3 @@
-# Self-signed Certificate Authority used purely for this assessment's mTLS
-# demo. In a real environment this would be replaced by an internal PKI
-# (e.g. an Azure-integrated CA or HashiCorp Vault PKI) with proper rotation,
-# revocation (CRL/OCSP), and key custody controls.
-
 resource "tls_private_key" "ca" {
   algorithm = "RSA"
   rsa_bits  = 4096
@@ -26,8 +21,6 @@ resource "tls_self_signed_cert" "ca" {
   ]
 }
 
-# Client certificate, signed by the CA above, presented by callers of the
-# internal API to satisfy the mTLS requirement.
 resource "tls_private_key" "client" {
   algorithm = "RSA"
   rsa_bits  = 2048

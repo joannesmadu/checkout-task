@@ -15,19 +15,6 @@ resource "azurerm_api_management" "this" {
   tags = var.tags
 }
 
-# Uploaded as a CA certificate so the inbound policy below can validate that
-# client certificates presented to APIM chain up to this trusted root via
-# context.Request.Certificate.Verify().
-#
-# ASSUMPTION / KNOWN GAP: enabling "negotiate client certificate" on APIM's
-# default *.azure-api.net hostname is a portal/management-REST-API toggle
-# that, at the time of writing, isn't exposed as a plain Terraform field for
-# the *default* hostname (only for custom domains via hostname_configuration,
-# which would require a server certificate and DNS we deliberately avoided
-# adding here to keep the build within scope - see README "Assumptions").
-# This resource and the policy below are written as if that negotiation is
-# enabled; in a real rollout this is the one piece to verify/complete by
-# hand or via an additional `azapi` provider call.
 resource "azurerm_api_management_certificate" "client_ca" {
   name                = "client-ca-certificate"
   api_management_name = azurerm_api_management.this.name
@@ -69,10 +56,6 @@ resource "azurerm_api_management_api_operation" "post_message" {
   }
 }
 
-# mTLS enforcement: reject any request without a client certificate, or
-# whose certificate doesn't verify against the uploaded CA. Deliberately
-# omits VerifyNoRevocation(), since that always fails for a self-signed CA
-# with no CRL/OCSP endpoint configured - see README "Assumptions".
 resource "azurerm_api_management_api_policy" "mtls_validation" {
   api_name            = azurerm_api_management_api.internal_api.name
   api_management_name = azurerm_api_management.this.name

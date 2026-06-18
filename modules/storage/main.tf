@@ -1,7 +1,3 @@
-# Storage Account backing the Function App's runtime (code, triggers,
-# locks). Public network access is disabled; the Function App reaches it
-# only via its VNet integration + these Private Endpoints.
-
 resource "azurerm_storage_account" "function" {
   name                = var.storage_account_name
   resource_group_name = var.resource_group_name

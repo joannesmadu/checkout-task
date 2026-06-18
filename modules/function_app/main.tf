@@ -13,10 +13,6 @@ resource "azurerm_linux_function_app" "this" {
   location            = var.location
   service_plan_id     = azurerm_service_plan.this.id
 
-  # storage_uses_managed_identity avoids needing a shared storage account
-  # key as a secret anywhere - the Function App's system-assigned identity
-  # is granted "Storage Blob Data Owner" on the storage account instead
-  # (role assignment is wired in the environment root module).
   storage_account_name          = var.storage_account_name
   storage_uses_managed_identity = true
 

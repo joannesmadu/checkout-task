@@ -1,0 +1,110 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "environments/**"
+      - "modules/**"
+  push:
+    branches: [main]
+    paths:
+      - "environments/**"
+      - "modules/**"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_USE_OIDC: "true"
+
+jobs:
+  terraform:
+    name: Format, Validate & Plan (dev)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform Format Check (modules & environments)
+        run: terraform fmt -check -recursive
+
+      # OIDC federated credential auth - no long-lived client secret stored
+      # in GitHub. The Azure AD App Registration's federated credential is
+      # scoped to this repo + branch; see README "CI/CD authentication".
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init (dev)
+        working-directory: environments/dev
+        run: >
+          terraform init
+          -backend-config="resource_group_name=${{ secrets.TFSTATE_RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ secrets.TFSTATE_STORAGE_ACCOUNT }}"
+          -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}"
+          -backend-config="key=dev.terraform.tfstate"
+
+      - name: Terraform Validate (dev)
+        working-directory: environments/dev
+        run: terraform validate
+
+      - name: Terraform Plan (dev)
+        working-directory: environments/dev
+        run: terraform plan -no-color -input=false
+
+  # Prod plan is intentionally a separate, manually-triggered job rather
+  # than running automatically on every push - applies to prod should be a
+  # deliberate, reviewed action, not something that happens on merge.
+  terraform-plan-prod:
+    name: Validate & Plan (prod) [manual]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init (prod)
+        working-directory: environments/prod
+        run: >
+          terraform init
+          -backend-config="resource_group_name=${{ secrets.TFSTATE_RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ secrets.TFSTATE_STORAGE_ACCOUNT }}"
+          -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}"
+          -backend-config="key=prod.terraform.tfstate"
+
+      - name: Terraform Validate (prod)
+        working-directory: environments/prod
+        run: terraform validate
+
+      - name: Terraform Plan (prod)
+        working-directory: environments/prod
+        run: terraform plan -no-color -input=false
